@@ -14,10 +14,12 @@ import Header from '@/components/Layout/Header';
 import Sidebar from '@/components/Layout/Sidebar';
 import OrderTable from '@/components/Orders/OrderTable';
 import OrderList from '@/components/Orders/OrderList';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 
 export default function Page() {
     return (<>
+    <ProtectedRoute>
         <Box sx={{ display: 'flex', minHeight: '100dvh' }}>
             <Header />
             <Sidebar />
@@ -95,5 +97,6 @@ export default function Page() {
                 <OrderList />
             </Box>
         </Box>
+        </ProtectedRoute>
     </>)
 }

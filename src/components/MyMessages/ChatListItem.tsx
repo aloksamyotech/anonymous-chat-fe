@@ -50,7 +50,7 @@ export default function ChatListItem(props: ChatListItemProps) {
                 textAlign: 'right',
               }}
             >
-              {messages[0].unread && (
+              {messages?.[0]?.unread && (
                 <CircleIcon sx={{ fontSize: 12 }} color="primary" />
               )}
               <Typography
@@ -72,7 +72,7 @@ export default function ChatListItem(props: ChatListItemProps) {
               textOverflow: 'ellipsis',
             }}
           >
-            {messages[0].content}
+            {messages?.[0]?.content}
           </Typography>
         </ListItemButton>
       </ListItem>

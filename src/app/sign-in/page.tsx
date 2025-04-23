@@ -76,10 +76,10 @@ export default function SignUp() {
                             justifyContent: 'space-between',
                         }}
                     >
-                        <Box sx={{ gap: 2, display: 'flex', alignItems: 'center' }}>
+                        {/* <Box sx={{ gap: 2, display: 'flex', alignItems: 'center' }}>
                             <Avatar onClick={() => router.push('/')}  alt="company" sx={{ borderRadius: "10%", height: "2rem", width: "2rem" }} src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTq56ZEZEoAO3LQM58USPv73nePUxfRscHvsZyj9pmzdA&s" />
                             <Typography level="title-lg">Logicae</Typography>
-                        </Box>
+                        </Box> */}
                         <ColorSchemeToggle />
                     </Box>
                     <Box
@@ -180,7 +180,7 @@ export default function SignUp() {
                     </Box>
                     <Box component="footer" sx={{ py: 3 }}>
                         <Typography level="body-xs" textAlign="center">
-                            © All Rights Reserved, Logicae {new Date().getFullYear()}
+                            © All Rights Reserved {new Date().getFullYear()}
                         </Typography>
                     </Box>
                 </Box>

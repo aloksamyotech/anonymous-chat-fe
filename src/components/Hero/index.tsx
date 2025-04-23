@@ -100,7 +100,7 @@ export default function HeroLeft01() {
                     </Typography>
                 </div>
             </Box>
-            <Typography
+            {/* <Typography
                 level="body-xs"
                 sx={{
                     position: 'absolute',
@@ -110,7 +110,7 @@ export default function HeroLeft01() {
                 }}
             >
                 Logicae
-            </Typography>
+            </Typography> */}
         </TwoSidedLayout>
     );
 }

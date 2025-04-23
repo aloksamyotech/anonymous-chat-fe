@@ -20,12 +20,14 @@ export type MessageInputProps = {
 export default function MessageInput(props: MessageInputProps) {
   const { textAreaValue, setTextAreaValue, onSubmit } = props;
   const textAreaRef = React.useRef<HTMLDivElement>(null);
+
   const handleClick = () => {
     if (textAreaValue.trim() !== '') {
       onSubmit();
       setTextAreaValue('');
     }
   };
+
   return (
     <Box sx={{ px: 2, pb: 3 }}>
       <FormControl>
@@ -33,9 +35,7 @@ export default function MessageInput(props: MessageInputProps) {
           placeholder="Type something here…"
           aria-label="Message"
           ref={textAreaRef}
-          onChange={(e) => {
-            setTextAreaValue(e.target.value);
-          }}
+          onChange={(e) => setTextAreaValue(e.target.value)}
           value={textAreaValue}
           minRows={3}
           maxRows={10}

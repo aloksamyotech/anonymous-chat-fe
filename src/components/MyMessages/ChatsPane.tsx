@@ -15,6 +15,7 @@ type ChatsPaneProps = {
   chats: ChatProps[];
   setSelectedChat: (chat: ChatProps) => void;
   selectedChatId: string;
+  setSelectedChatId : (chat: ChatProps) => void;
 };
 
 export default function ChatsPane(props: ChatsPaneProps) {

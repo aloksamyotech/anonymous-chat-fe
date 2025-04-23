@@ -2,46 +2,106 @@
 import * as React from "react";
 import Box from "@mui/joy/Box";
 import Button from "@mui/joy/Button";
+import Checkbox from "@mui/joy/Checkbox";
+import Divider from "@mui/joy/Divider";
 import FormControl from "@mui/joy/FormControl";
 import FormLabel, { formLabelClasses } from "@mui/joy/FormLabel";
 import GlobalStyles from "@mui/joy/GlobalStyles";
+import Link from "@mui/joy/Link";
 import Input from "@mui/joy/Input";
 import Typography from "@mui/joy/Typography";
 import Stack from "@mui/joy/Stack";
+import GoogleIcon from "@/components/GoogleIcon";
+import ColorSchemeToggle from "@/components/ThemeRegistry/ColorSchemeToggle";
+import { useRouter } from "next/navigation";
 import Avatar from "@mui/joy/Avatar";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import { useRouter } from "next/navigation";
-import * as Yup from "yup";
-import { Formik, Field, Form, ErrorMessage } from "formik";
-import ColorSchemeToggle from "@/components/ThemeRegistry/ColorSchemeToggle";
-import { loginFunction } from "@/services/user";
-import { authStorageService, saveToIndexedDB } from "@/utils/indexDb";
-import { ToastContainer, toast } from "react-toastify";
-import { statusCodes } from "@/utils/statusCodes";
+import { verifyOtp } from "@/services/user";
+import { authStorageService } from "@/utils/indexDb";
+import { toast, ToastContainer } from "react-toastify";
 
-const validationSchema = Yup.object({
-  email: Yup.string()
-    .email("Invalid email address")
-    .required("Email is required"),
-});
+const OTPInput = ({ value, onChange, onFocusNext }: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val.length === 1) {
+      onChange(val);
+      onFocusNext();
+    } else {
+      onChange("");
+    }
+  };
 
-export default function SignUp() {
+  return (
+    <Input
+      type="text"
+      maxLength={1}
+      value={value}
+      onChange={handleChange}
+      sx={{ width: "40px", textAlign: "center" }}
+    />
+  );
+};
+
+interface FormElements extends HTMLFormControlsCollection {
+  email: HTMLInputElement;
+  password: HTMLInputElement;
+  persistent: HTMLInputElement;
+}
+
+interface SignInFormElement extends HTMLFormElement {
+  readonly elements: FormElements;
+}
+
+export default function otpVerify() {
   const router = useRouter();
+  const [otp, setOtp] = React.useState(["", "", "", "", "", ""]);
+  const [loading, setLoading] = React.useState(false);
+  const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 
-  const handleSubmit = async (values: { email: string }) => {
+  const handleChangeOtp = (index: number, value: string) => {
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+  };
+
+  const focusNext = (index: number) => {
+    if (index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const focusPrev = (index: number) => {
+    if (index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent<SignInFormElement>) => {
     try {
-      const loginUser = await loginFunction(values);
-      await authStorageService.saveEmail(values?.email as string);
-      if (loginUser?.statusCode == statusCodes.Created) {
-        toast.success(`OTP sent to email`);
-        router.push("/otp");
-      } else if (
-        loginUser?.statusCode == statusCodes["Internal Server Error"]
-      ) {
-        toast.error(`Error to send email`);
+      setLoading(true);
+      event.preventDefault();
+      let authData = await authStorageService.getAuthData();
+
+      const payload = {
+        otp: otp.join(""),
+        email: authData?.email,
+      };
+
+      const verifyOtpRes = await verifyOtp(payload);
+      const publicKey = verifyOtpRes?.data?.publicKey;
+      const privateKey = verifyOtpRes?.data?.privateKey;
+      const loginToken = verifyOtpRes?.data?.token;
+      if (loginToken) {
+        localStorage.setItem("loginToken", loginToken);
       }
+      await authStorageService?.savePrivateKey(privateKey, publicKey);
+      await authStorageService?.getAuthData();
+      toast.success(`OTP verified successfully`);
     } catch (error) {
-      console.error("Login failed", error);
+      console.error("Error verifying OTP:", error);
+      toast.error("Failed to verify OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -130,43 +190,35 @@ export default function SignUp() {
             }}
           >
             <Stack gap={4} sx={{ mt: 2 }}>
-              <Formik
-                initialValues={{
-                  email: "",
-                  persistent: false,
-                }}
-                validationSchema={validationSchema}
-                onSubmit={handleSubmit}
-              >
-                {({ errors, touched, isSubmitting }) => (
-                  <Form>
-                    <FormControl required>
-                      <FormLabel>Enter Your Email </FormLabel>
-                      <Field
-                        name="email"
-                        type="email"
-                        as={Input}
-                        error={touched.email && !!errors.email}
-                      />
-                      <ErrorMessage
-                        name="email"
-                        component="div"
-                        style={{ color: "red" }}
-                      />
-                    </FormControl>
-
-                    <Stack gap={4} sx={{ mt: 2 }}>
-                      <Button type="submit" fullWidth disabled={isSubmitting}>
-                        {isSubmitting ? "Generating...." : "Generate OTP"}{" "}
-                        <PlayArrowIcon />
-                      </Button>
-                    </Stack>
-                  </Form>
-                )}
-              </Formik>
+              <form onSubmit={handleSubmit}>
+                <FormLabel>Enter OTP</FormLabel>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  {otp.map((value, index) => (
+                    <OTPInput
+                      key={index}
+                      index={index}
+                      value={value}
+                      onChange={(val) => handleChangeOtp(index, val)}
+                      onFocusNext={() => focusNext(index)}
+                      onFocusPrev={() => focusPrev(index)}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                    />
+                  ))}
+                </Box>
+                <Stack gap={4} sx={{ mt: 2 }}>
+                  <Button
+                    type="submit"
+                    fullWidth
+                    disabled={loading}
+                    onClick={handleSubmit}
+                    startDecorator={<PlayArrowIcon />}
+                  >
+                    {loading ? "Verifying..." : "Verify OTP"}
+                  </Button>
+                </Stack>
+              </form>
             </Stack>
           </Box>
-
           <Box component="footer" sx={{ py: 3 }}>
             <Typography level="body-xs" textAlign="center">
               © All Rights Reserved {new Date().getFullYear()}
