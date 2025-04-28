@@ -20,15 +20,28 @@ export default function MyProfile() {
 
   const selectedChat = chats.find((chat) => chat.id === selectedChatId)!;
 
-  const handleNewMessage = (message: MessageProps, chatId: string) => {
-    setChats((prevChats) =>
-      prevChats.map((chat) =>
-        chat.id === chatId
-          ? { ...chat, messages: [...chat.messages, message] }
-          : chat
-      )
-    );
-  };
+  // const handleNewMessage = (message: MessageProps, chatId: string) => {
+  //   setChats((prevChats) =>
+  //     prevChats.map((chat) =>
+  //       chat.id === chatId
+  //         ? { ...chat, messages: [...chat.messages, message] }
+  //         : chat
+  //     )
+  //   );
+  // };
+
+  const handleNewMessage = React.useCallback(
+    (message: MessageProps, chatId: string) => {
+      setChats((prevChats) =>
+        prevChats.map((chat) =>
+          chat.id === chatId
+            ? { ...chat, messages: [...chat.messages, message] }
+            : chat
+        )
+      );
+    },
+    []
+  );
 
   const handleSendMessage = () => {
     if (!messageInput.trim()) return;
