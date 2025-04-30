@@ -31,10 +31,9 @@ export default function SignUp() {
   const handleSubmit = async (values: { email: string }) => {
     try {
       const loginUser = await loginFunction(values);
-      await authStorageService.saveEmail(values?.email as string);
       if (loginUser?.statusCode == statusCodes.Created) {
         toast.success(`OTP sent to email`);
-        router.push("/otp");
+        router.push(`/otp?email=${encodeURIComponent(values.email)}`);
       } else if (
         loginUser?.statusCode == statusCodes["Internal Server Error"]
       ) {

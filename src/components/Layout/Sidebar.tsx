@@ -31,6 +31,7 @@ import * as React from "react";
 
 import { closeSidebar } from "../../utils";
 import ColorSchemeToggle from "../ThemeRegistry/ColorSchemeToggle";
+import { userStorageService } from "@/utils/indexDb";
 
 function Toggler({
   defaultExpanded = false,
@@ -67,6 +68,12 @@ function Toggler({
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+
+  const handleLogout = async () => {
+    const email = localStorage.getItem("secrete");
+    const cleardata = await userStorageService.clearAuthData(email as string);
+    router.push("/sign-up");
+  };
   return (
     <Sheet
       className="Sidebar"
@@ -325,7 +332,7 @@ export default function Sidebar() {
           size="sm"
           variant="plain"
           color="neutral"
-          onClick={() => router.push("/sign-up")}
+          onClick={handleLogout}
         >
           <LogoutRoundedIcon />
         </IconButton>

@@ -39,7 +39,7 @@ export default function HeroLeft01() {
                     '& > *': { flex: 'auto' },
                 }}
             >
-                <Button size="md" onClick={() => router.push('/sign-in')}
+                <Button size="md" onClick={() => router.push('/sign-up')}
                     endDecorator={<ArrowForward />}>
                     Get Started
                 </Button>

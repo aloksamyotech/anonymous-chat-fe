@@ -34,7 +34,7 @@ export default function MessagesPane({
       messagesContainerRef.current.scrollTop = 0;
     }
   }, [chatMessages]);
-  console.log(`chatMessages`, chatMessages);
+  
   
 
   return (

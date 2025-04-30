@@ -12,9 +12,6 @@ export const loginFunction = async (data : object)=>{
 
 export const verifyOtp = async (data : object)=>{
     const comUrl = api_url.baseUrl + api_url.user.verifyOtp 
-    
-    
-    
     const response = await postApi(comUrl ,data)
     return response
     

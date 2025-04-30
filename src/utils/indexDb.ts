@@ -1,102 +1,158 @@
-import { openDB, DBSchema } from "idb";
+import { openDB, DBSchema, IDBPDatabase } from "idb";
 
-interface AuthData {
+interface UserData {
   id?: string;
   email?: string;
   privateKey?: string;
   publicKey?: string;
+  loginToken?: string;
   timestamp?: number;
 }
 
-class AuthStorageService {
-  private dbName = "AuthDatabase";
-  private storeName = "AuthStore";
+interface UsersSchema extends DBSchema {
+  usersData: {
+    key: string;
+    value: UserData;
+    indexes: {
+      email: string;
+      timestamp: number;
+    };
+  };
+}
 
-  private async createDatabase() {
-    return await openDB<AuthSchema>(this.dbName, 1, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains("AuthStore")) {
-          const store = db.createObjectStore("AuthStore", {
-            keyPath: "id",
-            autoIncrement: true,
-          });
-          store.createIndex("email", "email", { unique: true });
-          store.createIndex("timestamp", "timestamp");
-        }
-      },
-    });
+class UserStorageService {
+  private dbName = "users";
+  private storeName = "usersData";
+  private static instance: UserStorageService;
+  private dbPromise: Promise<IDBPDatabase<UsersSchema>> | null = null;
+
+  private constructor() {}
+
+  public static getInstance(): UserStorageService {
+    if (!UserStorageService.instance) {
+      UserStorageService.instance = new UserStorageService();
+    }
+    return UserStorageService.instance;
   }
-  async saveEmail(email: string) {
-    const db = await this.createDatabase();
 
+  private async getDatabase(): Promise<IDBPDatabase<UsersSchema>> {
     try {
-      const existingEntry = await db.getFromIndex(
-        this.storeName,
-        "email",
-        email
-      );
+      if (this.dbPromise) {
+        try {
+          const db = await this.dbPromise;
 
-      if (existingEntry) {
-        await db.put(this.storeName, {
-          ...existingEntry,
-          email,
-          timestamp: Date.now(),
-        });
-      } else {
-        await db.add(this.storeName, {
-          email,
-          timestamp: Date.now(),
-        });
+          db.transaction(this.storeName);
+          return db;
+        } catch (err) {
+          console.warn(
+            "IndexedDB connection is closing or closed. Reinitializing..."
+          );
+          this.dbPromise = null;
+        }
       }
+
+      this.dbPromise = openDB<UsersSchema>(this.dbName, 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains("usersData")) {
+            const store = db.createObjectStore("usersData", {
+              keyPath: "id",
+              autoIncrement: true,
+            });
+            store.createIndex("email", "email", { unique: true });
+            store.createIndex("timestamp", "timestamp");
+          }
+        },
+      });
+
+      return this.dbPromise;
     } catch (error) {
-      console.error("Error saving email to IndexedDB:", error);
+      console.error("Error opening IndexedDB:", error);
       throw error;
     }
   }
 
-  async savePrivateKey(privateKey: string | undefined, publicKey: string) {
-    const db = await this.createDatabase();
+  async saveUserData(
+    userEmail: string,
+    publicKey: string,
+    loginToken: string,
+    privateKey?: string
+  ) {
+    const db = await this.getDatabase();
 
     try {
-      const allEntries = await db.getAll(this.storeName);
-      const latestEntry = allEntries[allEntries.length - 1];
+      const emailIndex = db.transaction(this.storeName).store.index("email");
+      const existingUser = await emailIndex.get(userEmail);
 
-      if (latestEntry) {
-        const updatedPrivateKey =
-          privateKey !== undefined ? privateKey : latestEntry.privateKey;
+      let savedRecord;
+      console.log(`existingUser`, existingUser);
 
-        await db.put(this.storeName, {
-          ...latestEntry,
+      if (existingUser) {
+        const updatedPrivateKey = privateKey
+          ? privateKey
+          : existingUser.privateKey;
+
+        const updatedUser = {
+          ...existingUser,
           privateKey: updatedPrivateKey,
           publicKey,
+          loginToken,
           timestamp: Date.now(),
-        });
+        };
+
+        await db.put(this.storeName, updatedUser);
+        savedRecord = updatedUser;
+      } else {
+        const newUser = {
+          email: userEmail,
+          privateKey,
+          publicKey,
+          loginToken,
+          timestamp: Date.now(),
+        };
+
+        await db.add(this.storeName, newUser);
+        savedRecord = newUser;
       }
+
+      console.log("Saved user data:", savedRecord);
     } catch (error) {
-      console.error("Error saving private key to IndexedDB:", error);
+      console.error("Error saving user data to IndexedDB:", error);
       throw error;
     }
   }
 
-  async getAuthData() {
-    const db = await this.createDatabase();
-
+  async getUserData(userEmail: string) {
+    const db = await this.getDatabase();
     try {
-      const allEntries = await db.getAll(this.storeName);
-      return allEntries[allEntries.length - 1] || null;
+      console.log(`userEmail`, userEmail);
+
+      const emailIndex = db.transaction(this.storeName).store.index("email");
+      console.log(`emailIndex`, emailIndex);
+
+      const userData = await emailIndex.get(userEmail);
+      console.log(`userData`, userData);
+
+      return userData || null;
     } catch (error) {
-      console.error("Error retrieving auth data:", error);
+      console.error("Error retrieving user data:", error);
       return null;
     }
   }
 
-  async clearAuthData() {
-    const db = await this.createDatabase();
+  async clearAuthData(email: string) {
+    const db = await this.getDatabase();
 
     try {
-      const allKeys = await db.getAllKeys(this.storeName);
-      for (const key of allKeys) {
-        await db.delete(this.storeName, key);
+      const emailIndex = db.transaction(this.storeName).store.index("email");
+      const userData = await emailIndex.get(email);
+      console.log(`userData`, userData);
+
+      if (userData) {
+        await db.put(this.storeName, {
+          ...userData,
+          loginToken: undefined,
+          timestamp: Date.now(),
+        });
       }
     } catch (error) {
       console.error("Error clearing auth data:", error);
@@ -104,4 +160,4 @@ class AuthStorageService {
   }
 }
 
-export const authStorageService = new AuthStorageService();
+export const userStorageService = UserStorageService.getInstance();

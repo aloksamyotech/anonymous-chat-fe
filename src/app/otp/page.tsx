@@ -13,12 +13,12 @@ import Typography from "@mui/joy/Typography";
 import Stack from "@mui/joy/Stack";
 import GoogleIcon from "@/components/GoogleIcon";
 import ColorSchemeToggle from "@/components/ThemeRegistry/ColorSchemeToggle";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Avatar from "@mui/joy/Avatar";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { verifyOtp } from "@/services/user";
-import { authStorageService } from "@/utils/indexDb";
 import { toast, ToastContainer } from "react-toastify";
+import { userStorageService } from "@/utils/indexDb";
 
 const OTPInput = ({ value, onChange, onFocusNext }: any) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,6 +64,16 @@ export default function otpVerify() {
     setOtp(newOtp);
   };
 
+  const searchParams = useSearchParams();
+  const [email, setEmail] = React.useState("");
+
+  React.useEffect(() => {
+    const emailParam = searchParams.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
+
   const focusNext = (index: number) => {
     if (index < 5) {
       inputRefs.current[index + 1]?.focus();
@@ -80,22 +90,46 @@ export default function otpVerify() {
     try {
       setLoading(true);
       event.preventDefault();
-      let authData = await authStorageService.getAuthData();
 
       const payload = {
         otp: otp.join(""),
-        email: authData?.email,
+        email,
       };
+      
 
       const verifyOtpRes = await verifyOtp(payload);
-      const publicKey = verifyOtpRes?.data?.publicKey;
-      const privateKey = verifyOtpRes?.data?.privateKey;
+      
+
+      const publicKey = verifyOtpRes?.data?.user?.publicKey
+        ? verifyOtpRes?.data?.user?.publicKey
+        : verifyOtpRes?.data?.publicKey;
+      const privateKey = verifyOtpRes?.data?.privatekey;
       const loginToken = verifyOtpRes?.data?.token;
-      if (loginToken) {
+      const userEmail = verifyOtpRes?.data?.user?.email;
+
+
+      if (userEmail) {
+        localStorage.setItem("secrete", userEmail);
         localStorage.setItem("loginToken", loginToken);
       }
-      await authStorageService?.savePrivateKey(privateKey, publicKey);
-      await authStorageService?.getAuthData();
+
+      if (privateKey) {
+        await userStorageService?.saveUserData(
+          userEmail,
+          publicKey,
+          loginToken,
+          privateKey
+        );
+      } else {
+        await userStorageService?.saveUserData(
+          userEmail,
+          publicKey,
+          loginToken
+        );
+      }
+      const savedData = await userStorageService?.getUserData(userEmail);
+      
+
       toast.success(`OTP verified successfully`);
     } catch (error) {
       console.error("Error verifying OTP:", error);

@@ -12,7 +12,7 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     const token = localStorage.getItem("loginToken");
-
+        
     if (!token) {
       router.push("/sign-up");
     } else {

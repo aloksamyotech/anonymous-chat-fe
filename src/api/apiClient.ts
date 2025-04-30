@@ -1,4 +1,3 @@
-import http from "@/utils/http";
 import axios from "axios";
 import { api_url } from "./url";
 
@@ -8,7 +7,7 @@ export const getApi = async (
   headers: Record<string, any> = {}
 ): Promise<any> => {
   try {
-    const response = await http.get(url, {
+    const response = await axios.get(url, {
       params,
     });
     return response?.data;
